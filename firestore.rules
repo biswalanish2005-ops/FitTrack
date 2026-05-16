@@ -1,0 +1,101 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // 3. Primitives & Helpers
+    function isValidId(id) { 
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); 
+    }
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+    function isSignedIn() { return request.auth != null; }
+    function isOwner(userId) { return isSignedIn() && request.auth.uid == userId; }
+    function isEmailVerified() { return request.auth.token.email_verified == true; }
+
+    // Validation Helpers
+    function isValidUser(data) {
+      return data.keys().hasAll(['uid', 'email']) &&
+             data.uid is string && data.uid == request.auth.uid &&
+             data.email is string && data.email.size() <= 256;
+    }
+
+    function isValidGoal(data) {
+      return data.keys().hasAll(['userId', 'weight', 'goalWeight']) &&
+             data.userId == request.auth.uid &&
+             data.weight is number && data.goalWeight is number;
+    }
+
+    function isValidMeal(data) {
+      return data.keys().hasAll(['userId', 'name', 'calories', 'date']) &&
+             data.userId == request.auth.uid &&
+             data.name is string && data.name.size() <= 200 &&
+             data.calories is number &&
+             data.date is string;
+    }
+
+    function isValidWeightLog(data) {
+      return data.keys().hasAll(['userId', 'weight', 'date']) &&
+             data.userId == request.auth.uid &&
+             data.weight is number &&
+             data.date is string;
+    }
+
+    function isValidProgressPhoto(data) {
+      return data.keys().hasAll(['userId', 'photoUrl', 'date']) &&
+             data.userId == request.auth.uid &&
+             data.photoUrl is string &&
+             data.date is string;
+    }
+
+    // Default Deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Users Collection
+    match /users/{userId} {
+      allow read: if isSignedIn();
+      allow create: if isOwner(userId) && isValidUser(incoming());
+      allow update: if isOwner(userId) && isValidUser(incoming()) && 
+                    incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'photoURL', 'level', 'streak']);
+    }
+
+    // Goals Collection
+    match /goals/{userId} {
+      allow read: if isOwner(userId);
+      allow create, update: if isOwner(userId) && isValidGoal(incoming());
+    }
+
+    // Meals Collection
+    match /meals/{mealId} {
+      allow read: if isOwner(existing().userId);
+      allow create: if isValidMeal(incoming());
+      allow update: if isOwner(existing().userId) && isValidMeal(incoming());
+      allow delete: if isOwner(existing().userId);
+      
+      // List enforcement
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+    }
+
+    // Weight History
+    match /weightHistory/{logId} {
+      allow read: if isOwner(existing().userId);
+      allow create: if isValidWeightLog(incoming());
+      allow update: if isOwner(existing().userId) && isValidWeightLog(incoming());
+      allow delete: if isOwner(existing().userId);
+      
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+    }
+
+    // Progress Photos
+    match /progressPhotos/{photoId} {
+      allow read: if isOwner(existing().userId);
+      allow create: if isValidProgressPhoto(incoming());
+      allow update: if isOwner(existing().userId) && isValidProgressPhoto(incoming());
+      allow delete: if isOwner(existing().userId);
+      
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+    }
+  }
+}

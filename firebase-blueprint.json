@@ -1,0 +1,104 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile and metadata",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "Firebase Auth UID" },
+        "displayName": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "photoURL": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "level": { "type": "integer" },
+        "streak": { "type": "integer" }
+      },
+      "required": ["uid", "email"]
+    },
+    "Goal": {
+      "title": "Goal",
+      "description": "User fitness goals and biometric baseline",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "weight": { "type": "number" },
+        "goalWeight": { "type": "number" },
+        "height": { "type": "number" },
+        "age": { "type": "integer" },
+        "gender": { "type": "string", "enum": ["male", "female", "other"] },
+        "activityLevel": { "type": "string" },
+        "timelineWeeks": { "type": "integer" },
+        "bmr": { "type": "number" },
+        "tdee": { "type": "number" },
+        "targetCals": { "type": "number" },
+        "targetProtein": { "type": "number" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "weight", "goalWeight"]
+    },
+    "Meal": {
+      "title": "Meal",
+      "description": "Logged meal entry",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "name": { "type": "string" },
+        "calories": { "type": "number" },
+        "protein": { "type": "number" },
+        "carbs": { "type": "number" },
+        "fat": { "type": "number" },
+        "category": { "type": "string", "enum": ["breakfast", "lunch", "dinner", "snack"] },
+        "date": { "type": "string", "format": "date" },
+        "timestamp": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "name", "calories", "date"]
+    },
+    "WeightLog": {
+      "title": "WeightLog",
+      "description": "Daily or periodic weight entry",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "weight": { "type": "number" },
+        "date": { "type": "string", "format": "date" },
+        "timestamp": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "weight", "date"]
+    },
+    "ProgressPhoto": {
+      "title": "ProgressPhoto",
+      "description": "Body progress photo metadata",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "photoUrl": { "type": "string" },
+        "type": { "type": "string", "enum": ["front", "side", "back"] },
+        "date": { "type": "string", "format": "date" },
+        "timestamp": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "photoUrl", "date"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "Public user profiles"
+    },
+    "/goals/{userId}": {
+      "schema": "Goal",
+      "description": "User specific goals"
+    },
+    "/meals/{mealId}": {
+      "schema": "Meal",
+      "description": "Logged meals"
+    },
+    "/weightHistory/{logId}": {
+      "schema": "WeightLog",
+      "description": "User weight history"
+    },
+    "/progressPhotos/{photoId}": {
+      "schema": "ProgressPhoto",
+      "description": "Progress photo metadata"
+    }
+  }
+}

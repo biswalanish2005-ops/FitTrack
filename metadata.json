@@ -1,0 +1,6 @@
+{
+  "name": "FitTrack AI",
+  "description": "A premium health and fitness tracking platform with AI-powered diet recommendations, calorie tracking, and body progress monitoring.",
+  "requestFramePermissions": ["camera"],
+  "majorCapabilities": []
+}
