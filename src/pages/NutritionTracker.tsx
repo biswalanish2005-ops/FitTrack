@@ -1,23 +1,43 @@
 import React from 'react';
 import { motion } from 'motion/react';
 import { Search, Plus, Trash2, Salad, Coffee, UtensilsCrossed, Apple, History } from 'lucide-react';
+import { db, auth } from '../lib/firebase';
+import { collection, addDoc, serverTimestamp, query, where, onSnapshot, orderBy } from 'firebase/firestore';
 
 const NutritionTracker = () => {
   const [activeTab, setActiveTab] = React.useState('breakfast');
+  const [meals, setMeals] = React.useState<any[]>([]);
 
-  const meals = {
-    breakfast: [
-      { name: 'Oatmeal with Almonds', cal: 320, pro: 12, carb: 45, fat: 8 },
-      { name: 'Black Coffee', cal: 5, pro: 0, carb: 1, fat: 0 },
-    ],
-    lunch: [
-      { name: 'Grilled Chicken Salad', cal: 450, pro: 35, carb: 15, fat: 22 },
-    ],
-    dinner: [],
-    snack: [
-      { name: 'Greek Yogurt', cal: 150, pro: 15, carb: 8, fat: 4 },
-    ],
+  React.useEffect(() => {
+    if (!auth.currentUser) return;
+    
+    const q = query(
+      collection(db, 'meals'), 
+      where('userId', '==', auth.currentUser.uid),
+      orderBy('timestamp', 'desc')
+    );
+    
+    return onSnapshot(q, (snapshot) => {
+      setMeals(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    });
+  }, []);
+
+  const addTestMeal = async () => {
+    if (!auth.currentUser) return;
+    await addDoc(collection(db, 'meals'), {
+      userId: auth.currentUser.uid,
+      name: 'Sample High Protein Meal',
+      cal: 450,
+      pro: 35,
+      carb: 20,
+      fat: 15,
+      category: activeTab,
+      date: new Date().toISOString().split('T')[0],
+      timestamp: serverTimestamp()
+    });
   };
+
+  const filteredMeals = meals.filter(m => m.category === activeTab);
 
   const tabs = [
     { id: 'breakfast', label: 'Breakfast', icon: Coffee },
@@ -103,12 +123,12 @@ const NutritionTracker = () => {
           </div>
 
           <div className="space-y-4">
-            {(meals as any)[activeTab].length > 0 ? (
-              (meals as any)[activeTab].map((meal: any, i: number) => (
+            {filteredMeals.length > 0 ? (
+              filteredMeals.map((meal: any, i: number) => (
                 <motion.div 
                   initial={{ opacity: 0, x: -10 }}
                   animate={{ opacity: 1, x: 0 }}
-                  key={i}
+                  key={meal.id || i}
                   className="glass-card p-5 rounded-2xl flex items-center justify-between group"
                 >
                   <div className="flex items-center space-x-4">
@@ -136,13 +156,16 @@ const NutritionTracker = () => {
               <div className="text-center py-20 bg-slate-50 dark:bg-slate-950 rounded-3xl border-2 border-dashed border-slate-200 dark:border-slate-800">
                 <UtensilsCrossed size={48} className="mx-auto text-slate-300 mb-4" />
                 <p className="text-slate-500 font-medium">Nothing logged for {activeTab} yet.</p>
-                <button className="mt-4 text-primary font-bold hover:underline">Add Your First Meal</button>
+                <button onClick={addTestMeal} className="mt-4 text-primary font-bold hover:underline">Add Your First Meal</button>
               </div>
             )}
             
-            <button className="w-full py-4 rounded-2xl border-2 border-dashed border-primary/20 text-primary font-bold hover:bg-primary/5 transition-all flex items-center justify-center space-x-2">
+            <button 
+              onClick={addTestMeal}
+              className="w-full py-4 rounded-2xl border-2 border-dashed border-primary/20 text-primary font-bold hover:bg-primary/5 transition-all flex items-center justify-center space-x-2"
+            >
               <Plus size={20} />
-              <span>Add Meal Manually</span>
+              <span>Add Sample {activeTab}</span>
             </button>
           </div>
         </div>

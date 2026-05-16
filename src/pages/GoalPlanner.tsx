@@ -1,6 +1,8 @@
 import React from 'react';
 import { motion } from 'motion/react';
 import { Calculator, User, Weight, Ruler, Clock, Activity, Target, BrainCircuit } from 'lucide-react';
+import { db, auth } from '../lib/firebase';
+import { doc, setDoc } from 'firebase/firestore';
 
 const GoalPlanner = () => {
   const [formData, setFormData] = React.useState({
@@ -15,7 +17,7 @@ const GoalPlanner = () => {
 
   const [results, setResults] = React.useState<any>(null);
 
-  const calculate = () => {
+  const calculate = async () => {
     // Simple BMR Harris-Benedict Equation
     let bmr = 0;
     if (formData.gender === 'male') {
@@ -33,20 +35,34 @@ const GoalPlanner = () => {
     };
 
     const tdee = Math.round(bmr * (activityMultipliers as any)[formData.activity]);
-    const protein = Math.round(formData.weight * 2.1); // ~2g per kg for athletes
+    const protein = Math.round(formData.weight * 2.1);
     
-    // Calculate deficit for goal
     const weightToLose = formData.weight - formData.goalWeight;
-    const weeklyDeficit = (weightToLose > 0) ? 500 : 0; // Simple fallback
+    const weeklyDeficit = (weightToLose > 0) ? 500 : 0;
     const targetCals = tdee - weeklyDeficit;
 
-    setResults({
+    const resultData = {
+      ...formData,
       bmr: Math.round(bmr),
       tdee,
       targetCals,
       protein,
-      deficit: weeklyDeficit
-    });
+      deficit: weeklyDeficit,
+      updatedAt: new Date().toISOString(),
+      userId: auth.currentUser?.uid
+    };
+
+    setResults(resultData);
+
+    // PERSIST TO FIRESTORE
+    if (auth.currentUser) {
+      try {
+        await setDoc(doc(db, 'goals', auth.currentUser.uid), resultData);
+        console.log("Goals saved to Firestore!");
+      } catch (e) {
+        console.error("Error saving goals:", e);
+      }
+    }
   };
 
   return (

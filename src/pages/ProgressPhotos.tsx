@@ -1,16 +1,32 @@
 import React from 'react';
 import { motion } from 'motion/react';
 import { Camera, Image as ImageIcon, Plus, Calendar, History, ArrowRightLeft } from 'lucide-react';
+import { db, auth } from '../lib/firebase';
+import { collection, addDoc, serverTimestamp, query, where, onSnapshot } from 'firebase/firestore';
 
 const ProgressPhotos = () => {
   const [sliderPos, setSliderPos] = React.useState(50);
   const [isComparing, setIsComparing] = React.useState(false);
+  const [photos, setPhotos] = React.useState<any[]>([]);
 
-  const photos = [
-    { date: 'May 15, 2026', type: 'Front', url: 'https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?auto=format&fit=crop&q=80&w=400' },
-    { date: 'May 1, 2026', type: 'Front', url: 'https://images.unsplash.com/photo-1583454110551-21f2fa2ec617?auto=format&fit=crop&q=80&w=400' },
-    { date: 'Apr 15, 2026', type: 'Front', url: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&q=80&w=400' },
-  ];
+  React.useEffect(() => {
+    if (!auth.currentUser) return;
+    const q = query(collection(db, 'progressPhotos'), where('userId', '==', auth.currentUser.uid));
+    return onSnapshot(q, (snapshot) => {
+      setPhotos(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    });
+  }, []);
+
+  const addSamplePhoto = async () => {
+     if (!auth.currentUser) return;
+     await addDoc(collection(db, 'progressPhotos'), {
+        userId: auth.currentUser.uid,
+        photoUrl: 'https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?auto=format&fit=crop&q=80&w=400',
+        type: 'front',
+        date: new Date().toISOString().split('T')[0],
+        timestamp: serverTimestamp()
+     });
+  };
 
   return (
     <div className="space-y-12">
@@ -92,6 +108,7 @@ const ProgressPhotos = () => {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
            <motion.div 
              whileHover={{ scale: 0.98 }}
+             onClick={addSamplePhoto}
              className="aspect-[3/4] border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-[2.5rem] flex flex-col items-center justify-center text-slate-400 group cursor-pointer hover:border-primary transition-colors"
            >
               <div className="w-16 h-16 bg-slate-100 dark:bg-slate-900 rounded-full flex items-center justify-center mb-4 group-hover:text-primary">
