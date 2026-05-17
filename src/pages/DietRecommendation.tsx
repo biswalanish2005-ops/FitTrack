@@ -38,19 +38,19 @@ const DietRecommendation = () => {
     <div className="space-y-12">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div className="max-w-2xl">
-          <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-sm font-medium mb-4">
+          <div className="inline-flex items-center space-x-2 px-3 py-1.5 rounded-full bg-accent/10 text-accent text-xs font-bold uppercase tracking-wider mb-6 border border-accent/20">
             <Brain size={16} />
             <span>AI Brain Active</span>
           </div>
-          <h1 className="text-4xl font-display font-bold mb-4">AI Diet Concierge</h1>
-          <p className="text-slate-500 text-lg">
+          <h1 className="text-4xl font-display font-bold mb-4 text-primary">AI Diet Concierge</h1>
+          <p className="text-slate-500 text-lg leading-relaxed">
             Our Gemini-powered engine crafts dynamic meal plans tailored to your biometric history and palate preferences.
           </p>
         </div>
         <button 
           onClick={generatePlan}
           disabled={loading}
-          className="flex items-center justify-center space-x-2 bg-primary text-white px-8 py-4 rounded-2xl text-lg font-bold hover:bg-primary-dark transition-all shadow-xl shadow-primary/30 disabled:opacity-50"
+          className="flex items-center justify-center space-x-2 bg-primary text-cream px-8 py-4 rounded-2xl text-lg font-bold hover:bg-primary-dark transition-all shadow-lg hover:scale-[1.02] active:scale-95 disabled:opacity-50 disabled:hover:scale-100"
         >
           {loading ? (
             <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1 }}>
@@ -68,10 +68,10 @@ const DietRecommendation = () => {
           <button
             key={type.id}
             onClick={() => setPreference(type.id)}
-            className={`flex items-center space-x-2 px-5 py-3 rounded-2xl font-bold transition-all ${
+            className={`flex items-center space-x-2 px-6 py-3 rounded-2xl font-bold transition-all ${
               preference === type.id 
-              ? 'bg-accent text-white scale-105' 
-              : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800'
+              ? 'bg-primary text-cream shadow-lg scale-105' 
+              : 'bg-white dark:bg-[#1A1A1A] border border-black/5 dark:border-white/5 hover:bg-black/5 dark:hover:bg-white/5 text-slate-500'
             }`}
           >
             <type.icon size={18} />
@@ -84,55 +84,57 @@ const DietRecommendation = () => {
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="glass-card p-10 rounded-[3rem] relative"
+          className="glass-card p-10 rounded-[3rem] relative bg-white dark:bg-[#1A1A1A] border border-black/5 dark:border-white/5 shadow-xl"
         >
-          <div className="prose dark:prose-invert max-w-none prose-p:text-slate-600 dark:prose-p:text-slate-300">
-            <h2 className="text-3xl font-display font-bold mb-8 flex items-center">
+          <div className="prose dark:prose-invert max-w-none prose-p:text-slate-600 dark:prose-p:text-slate-400">
+            <h2 className="text-3xl font-display font-bold mb-8 flex items-center text-primary">
               <Sparkles className="mr-3 text-accent" />
               Your Personalized {preference.split('-').map(w => w[0].toUpperCase() + w.slice(1)).join(' ')} Plan
             </h2>
-            <div className="whitespace-pre-wrap leading-relaxed text-lg">
+            <div className="whitespace-pre-wrap leading-relaxed text-lg font-medium text-slate-700 dark:text-slate-300">
               {dietPlan}
             </div>
           </div>
           
           <div className="mt-12 flex justify-end space-x-4">
-             <button className="px-6 py-3 rounded-xl border border-slate-300 dark:border-slate-700 font-bold hover:bg-slate-100 dark:hover:bg-slate-800">
+             <button className="px-8 py-4 rounded-2xl border border-black/10 dark:border-white/10 font-bold hover:bg-black/5 dark:hover:bg-white/5 transition-colors text-primary">
                Save to Favorites
              </button>
-             <button className="px-6 py-3 bg-primary text-white rounded-xl font-bold hover:bg-primary-dark">
+             <button className="px-8 py-4 bg-primary text-cream rounded-2xl font-bold hover:bg-primary-dark transition-colors shadow-lg">
                Apply Plan
              </button>
           </div>
         </motion.div>
       ) : (
         <div className="grid md:grid-cols-2 gap-8">
-           <div className="p-12 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-[3rem] flex flex-col items-center justify-center text-center">
-              <Brain size={64} className="text-slate-300 mb-6" />
-              <h3 className="text-xl font-bold mb-2">Ready to Upgrade Your Nutrition?</h3>
-              <p className="text-slate-500 mb-8 max-w-xs">Tap the generate button to create a plan based on your current body metrics.</p>
+           <div className="p-12 border-2 border-dashed border-black/10 dark:border-white/10 rounded-[3rem] flex flex-col items-center justify-center text-center bg-white/50 dark:bg-[#111111]/50">
+              <Brain size={64} className="text-slate-300 dark:text-slate-700 mb-8" />
+              <h3 className="text-2xl font-bold mb-4 text-primary">Ready to Upgrade Your Nutrition?</h3>
+              <p className="text-slate-500 mb-8 max-w-sm leading-relaxed">Tap the generate button to create a plan based on your current body metrics.</p>
            </div>
-           <div className="glass-card p-8 rounded-[3rem] bg-slate-950 text-white border-none flex flex-col justify-between">
+           <div className="glass-card p-10 rounded-[3rem] bg-[#1A1A1A] text-cream border-none flex flex-col justify-between shadow-2xl">
               <div>
-                <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center text-accent mb-6">
-                  <Star fill="currentColor" size={24} />
+                <div className="w-14 h-14 bg-white/5 rounded-2xl flex items-center justify-center text-accent mb-8 border border-white/10">
+                  <Star fill="currentColor" size={28} />
                 </div>
-                <h3 className="text-2xl font-bold mb-4">Why AI Recommendations?</h3>
-                <ul className="space-y-4">
+                <h3 className="text-3xl font-display font-bold mb-6">Why AI Recommendations?</h3>
+                <ul className="space-y-5">
                   {[
                     'Based on verified clinical BMR data',
                     'Adapts to your food preferences',
                     'Includes macro-perfect caloric balance',
                     'Cultural and regional food support'
                   ].map((item, i) => (
-                    <li key={i} className="flex items-center space-x-3 text-white/70">
-                      <ArrowRight size={16} className="text-accent" />
+                    <li key={i} className="flex items-center space-x-4 text-white/70 font-medium">
+                      <div className="p-1.5 bg-accent/10 rounded-lg">
+                        <ArrowRight size={16} className="text-accent" />
+                      </div>
                       <span>{item}</span>
                     </li>
                   ))}
                 </ul>
               </div>
-              <p className="text-white/40 text-xs mt-8">Powered by Gemini 3 Flash Pro for elite reasoning.</p>
+              <p className="text-white/40 text-xs mt-10 font-medium tracking-wider uppercase">Powered by Gemini 3 Flash Pro for elite reasoning.</p>
            </div>
         </div>
       )}

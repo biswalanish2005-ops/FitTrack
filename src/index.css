@@ -1,32 +1,36 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700&display=swap');
 @import "tailwindcss";
 
 @theme {
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
-  --font-display: "Space Grotesk", sans-serif;
+  --font-display: "Outfit", sans-serif;
   
-  --color-primary: #3b82f6;
-  --color-primary-dark: #1d4ed8;
-  --color-accent: #f97316;
+  --color-primary: #1A1A1A;
+  --color-primary-dark: #000000;
+  --color-accent: #C5A059;
+  
+  --color-cream: #FAFAF7;
+  --color-beige: #F5F5F0;
+  --color-sand: #EAEAE5;
 }
 
 @layer base {
   body {
-    @apply bg-slate-50 text-slate-900 transition-colors duration-300;
+    @apply bg-cream text-[#1A1A1A] transition-colors duration-300;
   }
   
   .dark body {
-    @apply bg-slate-950 text-slate-50;
+    @apply bg-[#111111] text-[#FAFAF7];
   }
 }
 
 @layer components {
   .glass-card {
-    @apply bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl border border-white/20 dark:border-white/10 shadow-xl;
+    @apply bg-white/80 dark:bg-[#1A1A1A]/80 backdrop-blur-xl border border-black/5 dark:border-white/5 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)] rounded-3xl transition-all duration-300;
   }
   
   .glass-nav {
-    @apply bg-white/80 dark:bg-slate-950/80 backdrop-blur-md border-b border-white/20 dark:border-white/10;
+    @apply bg-cream/90 dark:bg-[#111111]/90 backdrop-blur-lg border-b border-black/5 dark:border-white/5;
   }
 }
 

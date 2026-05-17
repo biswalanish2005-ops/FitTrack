@@ -53,6 +53,40 @@ async function startServer() {
     ]);
   });
 
+  // Nutrition Lookup APIs
+  app.get("/api/nutrition/search", async (req, res) => {
+    try {
+      // Dynamic import to avoid path extension issues in TS Node execution
+      const { searchUSDAFood } = await import('./src/lib/nutritionApi.ts');
+      const query = req.query.q as string;
+      if (!query) {
+        res.status(400).json({ error: "Query is required" });
+        return;
+      }
+      const results = await searchUSDAFood(query);
+      res.json(results);
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: "Failed to fetch USDA data" });
+    }
+  });
+
+  app.get("/api/nutrition/barcode/:code", async (req, res) => {
+    try {
+      const { fetchBarcodeNutrition } = await import('./src/lib/nutritionApi.ts');
+      const barcode = req.params.code;
+      const result = await fetchBarcodeNutrition(barcode);
+      if (!result) {
+        res.status(404).json({ error: "Product not found" });
+        return;
+      }
+      res.json(result);
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: "Failed to fetch barcode data" });
+    }
+  });
+
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({

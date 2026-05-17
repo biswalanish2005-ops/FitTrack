@@ -1,8 +1,8 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { motion } from 'motion/react';
-import { Calculator, User, Weight, Ruler, Clock, Activity, Target, BrainCircuit } from 'lucide-react';
-import { db, auth } from '../lib/firebase';
-import { doc, setDoc } from 'firebase/firestore';
+import { Calculator, User, Weight, Ruler, Clock, Activity, Target, BrainCircuit, Loader2 } from 'lucide-react';
+import { auth } from '../lib/firebase';
+import { updateUserGoals, getUserGoals, UserGoals } from '../lib/db';
 
 const GoalPlanner = () => {
   const [formData, setFormData] = React.useState({
@@ -16,8 +16,31 @@ const GoalPlanner = () => {
   });
 
   const [results, setResults] = React.useState<any>(null);
+  const [isSaving, setIsSaving] = React.useState(false);
+  const [isLoading, setIsLoading] = React.useState(true);
+
+  useEffect(() => {
+    const fetchGoals = async () => {
+      try {
+        const goals = await getUserGoals();
+        if (goals) {
+          setFormData(prev => ({
+            ...prev,
+            weight: goals.startingWeight || prev.weight,
+            goalWeight: goals.targetWeight || prev.goalWeight,
+          }));
+        }
+      } catch (err) {
+        console.error("Failed to load goals", err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchGoals();
+  }, []);
 
   const calculate = async () => {
+    setIsSaving(true);
     // Simple BMR Harris-Benedict Equation
     let bmr = 0;
     if (formData.gender === 'male') {
@@ -36,10 +59,13 @@ const GoalPlanner = () => {
 
     const tdee = Math.round(bmr * (activityMultipliers as any)[formData.activity]);
     const protein = Math.round(formData.weight * 2.1);
+    const fat = Math.round((tdee * 0.25) / 9); // 25% of calories from fat
     
     const weightToLose = formData.weight - formData.goalWeight;
     const weeklyDeficit = (weightToLose > 0) ? 500 : 0;
     const targetCals = tdee - weeklyDeficit;
+    
+    const carbs = Math.round((targetCals - (protein * 4) - (fat * 9)) / 4);
 
     const resultData = {
       ...formData,
@@ -47,23 +73,41 @@ const GoalPlanner = () => {
       tdee,
       targetCals,
       protein,
+      carbs,
+      fat,
       deficit: weeklyDeficit,
-      updatedAt: new Date().toISOString(),
-      userId: auth.currentUser?.uid
     };
 
     setResults(resultData);
 
-    // PERSIST TO FIRESTORE
+    // PERSIST TO FIRESTORE via db utils
     if (auth.currentUser) {
       try {
-        await setDoc(doc(db, 'goals', auth.currentUser.uid), resultData);
-        console.log("Goals saved to Firestore!");
+        const newGoals: Partial<UserGoals> = {
+          targetCalories: targetCals,
+          targetProtein: protein,
+          targetCarbs: carbs,
+          targetFat: fat,
+          targetWeight: formData.goalWeight,
+          startingWeight: formData.weight,
+          targetWater: 3, // Default 3L
+          targetSteps: 10000,
+        };
+        await updateUserGoals(newGoals);
       } catch (e) {
         console.error("Error saving goals:", e);
       }
     }
+    setIsSaving(false);
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <Loader2 className="h-12 w-12 text-primary animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-12">
@@ -77,10 +121,10 @@ const GoalPlanner = () => {
         <motion.div 
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
-          className="glass-card p-8 rounded-[2rem]"
+          className="glass-card p-8"
         >
           <div className="flex items-center space-x-3 mb-8">
-            <div className="p-2 bg-primary/10 rounded-lg text-primary">
+            <div className="p-2.5 bg-black/5 dark:bg-white/5 rounded-xl text-primary">
               <Calculator size={20} />
             </div>
             <h2 className="text-xl font-bold">Biometric Data</h2>
@@ -88,62 +132,62 @@ const GoalPlanner = () => {
 
           <div className="grid grid-cols-2 gap-6 mb-6">
             <div className="space-y-2">
-              <label className="text-sm font-bold text-slate-500 uppercase">Weight (kg)</label>
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Weight (kg)</label>
               <div className="relative">
-                <Weight className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                <Weight className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
                 <input 
                   type="number" 
                   value={formData.weight}
                   onChange={(e) => setFormData({...formData, weight: +e.target.value})}
-                  className="w-full pl-10 pr-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl focus:ring-2 focus:ring-primary focus:outline-none" 
+                  className="w-full pl-12 pr-4 py-3.5 bg-white dark:bg-[#111111] border border-black/5 dark:border-white/5 rounded-2xl focus:ring-2 focus:ring-accent focus:outline-none transition-shadow font-medium" 
                 />
               </div>
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-bold text-slate-500 uppercase">Goal Weight (kg)</label>
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Goal Weight</label>
               <div className="relative">
-                <Target className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                <Target className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
                 <input 
                    type="number" 
                    value={formData.goalWeight}
                   onChange={(e) => setFormData({...formData, goalWeight: +e.target.value})}
-                   className="w-full pl-10 pr-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl focus:ring-2 focus:ring-primary focus:outline-none" 
+                   className="w-full pl-12 pr-4 py-3.5 bg-white dark:bg-[#111111] border border-black/5 dark:border-white/5 rounded-2xl focus:ring-2 focus:ring-accent focus:outline-none transition-shadow font-medium" 
                 />
               </div>
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-bold text-slate-500 uppercase">Height (cm)</label>
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Height (cm)</label>
               <div className="relative">
-                <Ruler className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                <Ruler className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
                 <input 
                   type="number" 
                    value={formData.height}
                   onChange={(e) => setFormData({...formData, height: +e.target.value})}
-                  className="w-full pl-10 pr-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl focus:ring-2 focus:ring-primary focus:outline-none" 
+                  className="w-full pl-12 pr-4 py-3.5 bg-white dark:bg-[#111111] border border-black/5 dark:border-white/5 rounded-2xl focus:ring-2 focus:ring-accent focus:outline-none transition-shadow font-medium" 
                 />
               </div>
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-bold text-slate-500 uppercase">Age</label>
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Age</label>
               <div className="relative">
-                <Clock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                <Clock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
                 <input 
                   type="number" 
                    value={formData.age}
                   onChange={(e) => setFormData({...formData, age: +e.target.value})}
-                  className="w-full pl-10 pr-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl focus:ring-2 focus:ring-primary focus:outline-none" 
+                  className="w-full pl-12 pr-4 py-3.5 bg-white dark:bg-[#111111] border border-black/5 dark:border-white/5 rounded-2xl focus:ring-2 focus:ring-accent focus:outline-none transition-shadow font-medium" 
                 />
               </div>
             </div>
           </div>
 
-          <div className="space-y-6">
+          <div className="space-y-8">
             <div className="space-y-2">
-              <label className="text-sm font-bold text-slate-500 uppercase">Activity Level</label>
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Activity Level</label>
               <select 
                 value={formData.activity}
                 onChange={(e) => setFormData({...formData, activity: e.target.value})}
-                className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl focus:ring-2 focus:ring-primary focus:outline-none"
+                className="w-full px-4 py-3.5 bg-white dark:bg-[#111111] border border-black/5 dark:border-white/5 rounded-2xl focus:ring-2 focus:ring-accent focus:outline-none font-medium"
               >
                 <option value="sedentary">Sedentary (Office job)</option>
                 <option value="light">Lightly Active (1-2 days/week)</option>
@@ -155,9 +199,10 @@ const GoalPlanner = () => {
 
             <button 
               onClick={calculate}
-              className="w-full py-4 bg-primary text-white text-lg font-bold rounded-2xl hover:bg-primary-dark transition-all transform hover:scale-[1.02] active:scale-95 shadow-lg shadow-primary/20"
+              disabled={isSaving}
+              className="w-full py-4 bg-primary text-cream text-lg font-bold rounded-2xl hover:bg-primary-dark transition-all transform hover:scale-[1.02] active:scale-95 shadow-lg flex items-center justify-center space-x-2"
             >
-              Analyze Metrics
+              {isSaving ? <Loader2 className="animate-spin" size={24} /> : <span>Analyze Metrics</span>}
             </button>
           </div>
         </motion.div>
@@ -166,53 +211,53 @@ const GoalPlanner = () => {
         <div className="flex flex-col justify-center">
           {results ? (
             <motion.div 
-              initial={{ opacity: 0, scale: 0.9 }}
+              initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               className="space-y-6"
             >
-              <div className="glass-card p-10 rounded-[2.5rem] bg-gradient-to-br from-primary to-blue-600 text-white border-none shadow-2xl relative overflow-hidden">
-                <div className="absolute -right-20 -top-20 w-64 h-64 bg-white/10 rounded-full blur-3xl" />
-                <h3 className="text-lg font-bold text-white/70 uppercase tracking-widest mb-2">Recommended Daily Intake</h3>
+              <div className="glass-card p-10 bg-[#1A1A1A] text-white border-none shadow-[0_20px_40px_rgb(0,0,0,0.15)] relative overflow-hidden">
+                <div className="absolute -right-20 -top-20 w-64 h-64 bg-white/5 rounded-full blur-3xl" />
+                <h3 className="text-sm font-bold text-accent uppercase tracking-widest mb-4">Recommended Intake</h3>
                 <div className="flex items-baseline space-x-3 mb-8">
-                  <span className="text-6xl font-display font-bold">{results.targetCals}</span>
-                  <span className="text-xl opacity-80">kcal / day</span>
+                  <span className="text-6xl font-display font-bold text-cream">{results.targetCals}</span>
+                  <span className="text-xl opacity-60">kcal / day</span>
                 </div>
                 
                 <div className="grid grid-cols-2 gap-8">
                   <div>
-                    <div className="text-white/60 text-sm font-bold uppercase mb-1">Maintenance</div>
+                    <div className="text-white/40 text-xs font-bold uppercase tracking-wider mb-1">Maintenance</div>
                     <div className="text-2xl font-bold">{results.tdee} kcal</div>
                   </div>
                   <div>
-                    <div className="text-white/60 text-sm font-bold uppercase mb-1">Target Protein</div>
+                    <div className="text-white/40 text-xs font-bold uppercase tracking-wider mb-1">Target Protein</div>
                     <div className="text-2xl font-bold">{results.protein}g</div>
                   </div>
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-6">
-                <div className="glass-card p-6 rounded-3xl">
-                  <Activity className="text-primary mb-3" />
-                  <div className="text-sm font-bold text-slate-500 uppercase">Basal Met. Rate</div>
-                  <div className="text-2xl font-bold">{results.bmr} kcal</div>
+                <div className="glass-card p-6">
+                  <Activity className="text-accent mb-4" size={24} />
+                  <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Basal Met. Rate</div>
+                  <div className="text-2xl font-bold text-primary">{results.bmr} <span className="text-sm text-slate-400 font-medium">kcal</span></div>
                 </div>
-                <div className="glass-card p-6 rounded-3xl">
-                  <BrainCircuit className="text-accent mb-3" />
-                  <div className="text-sm font-bold text-slate-500 uppercase">Daily Deficit</div>
-                  <div className="text-2xl font-bold">{results.deficit} kcal</div>
+                <div className="glass-card p-6">
+                  <BrainCircuit className="text-primary mb-4" size={24} />
+                  <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Daily Deficit</div>
+                  <div className="text-2xl font-bold text-primary">{results.deficit} <span className="text-sm text-slate-400 font-medium">kcal</span></div>
                 </div>
               </div>
               
-              <div className="p-6 bg-green-500/10 border border-green-500/20 rounded-3xl">
-                <p className="text-green-600 dark:text-green-400 font-medium text-center">
+              <div className="p-5 bg-accent/5 border border-accent/20 rounded-2xl">
+                <p className="text-primary dark:text-cream font-medium text-center text-sm">
                   Consistency with this plan will lead to <strong>{formData.goalWeight}kg</strong> within approx. 10 weeks.
                 </p>
               </div>
             </motion.div>
           ) : (
             <div className="flex flex-col items-center justify-center py-20 opacity-30">
-               <Calculator size={80} className="mb-4" />
-               <p className="text-xl font-medium">Enter your data to see analysis</p>
+               <Calculator size={80} className="mb-6 text-slate-400" />
+               <p className="text-xl font-medium text-slate-500">Enter your data to see analysis</p>
             </div>
           )}
         </div>
